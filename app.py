@@ -29,9 +29,25 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import features
 
 app = Flask(__name__)
-os.makedirs(app.instance_path, exist_ok=True)
-secret_path = os.path.join(app.instance_path, "session-secret")
-if not os.getenv("FLASK_SECRET_KEY"):
+
+# Vercel packages application code on a read-only filesystem. Its only writable
+# location is /tmp, so runtime state must live there instead of beside app.py.
+IS_VERCEL = bool(os.getenv("VERCEL"))
+runtime_path = os.getenv(
+    "WILDTRACK_RUNTIME_DIR",
+    os.path.join("/tmp", "wildtrack") if IS_VERCEL else app.instance_path,
+)
+os.makedirs(runtime_path, exist_ok=True)
+
+environment_secret = os.getenv("FLASK_SECRET_KEY")
+if environment_secret:
+    local_secret = environment_secret
+elif IS_VERCEL:
+    # Keep a missing environment variable from crashing the deployment. This
+    # fallback is intentionally ephemeral; production should set the variable.
+    local_secret = secrets.token_hex(32)
+else:
+    secret_path = os.path.join(runtime_path, "session-secret")
     try:
         with open(secret_path, "x", encoding="utf-8") as secret_file:
             secret_file.write(secrets.token_hex(32))
@@ -40,15 +56,20 @@ if not os.getenv("FLASK_SECRET_KEY"):
         pass
     with open(secret_path, encoding="utf-8") as secret_file:
         local_secret = secret_file.read().strip()
-else:
-    local_secret = os.environ["FLASK_SECRET_KEY"]
+
 app.config.update(
     SECRET_KEY=local_secret,
-    DATABASE=os.getenv("WILDTRACK_DATABASE", os.path.join(app.root_path, "data", "wildtrack.db")),
-    UPLOAD_FOLDER=os.path.join(app.instance_path, "uploads"),
+    DATABASE=os.getenv(
+        "WILDTRACK_DATABASE",
+        os.path.join(runtime_path, "wildtrack.db")
+        if IS_VERCEL
+        else os.path.join(app.root_path, "data", "wildtrack.db"),
+    ),
+    UPLOAD_FOLDER=os.getenv("WILDTRACK_UPLOAD_FOLDER", os.path.join(runtime_path, "uploads")),
     MAX_CONTENT_LENGTH=6 * 1024 * 1024,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=IS_VERCEL,
 )
 
 SHEET_ID = os.getenv(
