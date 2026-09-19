@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Page not found · WildTrack{% endblock %}
+{% block content %}
+<main class="empty-page page-shell">
+  <span class="empty-code">404</span>
+  <h1>This trail ends here.</h1>
+  <p>The page or species profile you requested does not exist.</p>
+  <a class="button" href="{{ url_for('index') }}">Return to tracker</a>
+</main>
+{% endblock %}

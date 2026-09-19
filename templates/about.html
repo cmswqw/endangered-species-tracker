@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}About · WildTrack{% endblock %}
+{% block content %}
+<main class="page-shell about-page">
+  <header class="about-hero"><span class="eyebrow light">ABOUT WILDTRACK</span><h1>Conservation data,<br>made easier to explore.</h1><p>WildTrack is an educational tracker that brings species status, habitat, threats, and conservation actions into one approachable workspace.</p></header>
+  <section class="about-grid">
+    <article class="panel"><span class="number-label">01</span><h2>Explore responsibly</h2><p>Species profiles are designed for learning and awareness. Representative map points are intentionally broad and should never be treated as exact wildlife locations.</p></article>
+    <article class="panel"><span class="number-label">02</span><h2>Verify current status</h2><p>Conservation assessments change. Each profile links to the IUCN Red List search so users can verify the most current scientific assessment.</p></article>
+    <article class="panel"><span class="number-label">03</span><h2>Protect sensitive data</h2><p>The field journal asks only for a general place name. Do not publish nest sites, dens, precise coordinates, or information that could put wildlife at risk.</p></article>
+  </section>
+  <section class="data-section"><div><span class="eyebrow">DATA MODEL</span><h2>Where the information comes from</h2></div><div><p>The app first tries to load records from a configured Google Sheet. When no Sheet is connected, it safely falls back to the included CSV sample.</p><ul><li>IUCN links for current category verification</li><li>Wikipedia background links and profile imagery</li><li>Representative coordinates for map visualization</li><li>Local SQLite accounts, watchlists, and field notes</li></ul></div></section>
+  <section class="join-banner"><div><span class="eyebrow light">OPEN DATA ACCESS</span><h2>Build with the species directory.</h2><p>A read-only JSON endpoint is available for learning projects and integrations.</p></div><a class="button button-light" href="{{ url_for('species_api') }}">Open species API</a></section>
+</main>
+{% endblock %}

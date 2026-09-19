@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block content %}<main class="page-shell empty-page"><span class="empty-code">{{ code }}</span><h1>{{ bi('This action is unavailable','यो कार्य उपलब्ध छैन') }}</h1><p>{{ message }}</p><a class="button" href="{{ url_for('index') }}">{{ tr('Return to tracker') }}</a></main>{% endblock %}

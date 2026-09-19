@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Log in · WildTrack{% endblock %}
+{% block content %}
+<main class="auth-page">
+  <section class="auth-story">
+    <a class="back-link light-text" href="{{ url_for('index') }}">← Back to species</a>
+    <div><span class="eyebrow light">MEMBER WORKSPACE</span><h1>Your watchlist is waiting.</h1><p>Follow priority species, record observations, and keep your conservation interests in one place.</p></div>
+    <div class="auth-stat"><strong>Private by default</strong><span>Your local journal stays in this app’s database.</span></div>
+  </section>
+  <section class="auth-form-wrap">
+    <form class="auth-form" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="next" value="{{ next_url or '' }}">
+      <span class="eyebrow">WELCOME BACK</span><h2>Log in to WildTrack</h2><p class="form-intro">Use your username or email to continue.</p>
+      <label for="identity">{{ tr('Username or email') }}</label>
+      <input id="identity" name="identity" type="text" autocomplete="username" required autofocus value="{{ request.form.get('identity', '') }}">
+      <label for="password">{{ tr('Password') }}</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <button class="button button-full" type="submit">{{ tr('Log in') }}</button>
+      <p class="auth-switch">New here? <a href="{{ url_for('register') }}">{{ tr('Create an account') }}</a></p>
+    </form>
+  </section>
+</main>
+{% endblock %}

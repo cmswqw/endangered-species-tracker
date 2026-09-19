@@ -1,0 +1,13 @@
+{% macro heading(kicker, title, description='') %}
+<header class="hub-heading"><span class="eyebrow">{{ kicker }}</span><h1>{{ title }}</h1>{% if description %}<p>{{ description }}</p>{% endif %}</header>
+{% endmacro %}
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token }}">{% endmacro %}
+{% macro badge(status) %}<span class="review-badge review-{{ status }}">{{ tr({'private':'Private','pending':'Pending review','approved':'Verified','rejected':'Rejected','hidden':'Hidden'}.get(status,status)) }}</span>{% endmacro %}
+{% macro observation_card(o) %}
+<article class="panel observation-tile">
+  {% if o.photo %}<img class="observation-photo" src="{{ url_for('hub.observation_photo', observation_id=o.id) }}" alt="{{ bi('Observation photograph of','अवलोकन फोटो:') }} {{ o.species.Common_Name if o.species else o.species_id }}" loading="lazy">{% endif %}
+  <div class="row-between">{{ badge(o.status) }}<time>{{ o.observed_on }}</time></div>
+  <h3>{% if o.species %}<a href="{{ url_for('species_detail', species_id=o.species.Species_ID) }}">{{ o.species.Common_Name }}</a>{% else %}{{ o.species_id }}{% endif %}</h3>
+  <p class="muted-copy">{{ tr(o.location) }} · {{ tr(o.category) }}</p><p class="preserve-lines">{{ o.notes }}</p><small>{{ bi('Reported by','अवलोकनकर्ता') }} {{ o.username }}</small>
+</article>
+{% endmacro %}

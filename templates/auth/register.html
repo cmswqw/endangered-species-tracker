@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Create account · WildTrack{% endblock %}
+{% block content %}
+<main class="auth-page">
+  <section class="auth-story register-story">
+    <a class="back-link light-text" href="{{ url_for('index') }}">← Back to species</a>
+    <div><span class="eyebrow light">JOIN WILDTRACK</span><h1>Start your conservation workspace.</h1><p>Create a watchlist and build a field journal around the species you care about.</p></div>
+    <ul class="feature-ticks"><li>Follow at-risk species</li><li>Record dated observations</li><li>Keep a personal field journal</li></ul>
+  </section>
+  <section class="auth-form-wrap">
+    <form class="auth-form" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <span class="eyebrow">CREATE ACCOUNT</span><h2>{{ tr('Join WildTrack') }}</h2><p class="form-intro">Free, local, and ready in a minute.</p>
+      <label for="username">{{ tr('Username') }}</label>
+      <input id="username" name="username" type="text" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" required autofocus value="{{ request.form.get('username', '') }}">
+      <span class="field-hint">3–24 letters, numbers, or underscores</span>
+      <label for="email">{{ tr('Email') }}</label>
+      <input id="email" name="email" type="email" autocomplete="email" required value="{{ request.form.get('email', '') }}">
+      <div class="form-row">
+        <div><label for="password">{{ tr('Password') }}</label><input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required></div>
+        <div><label for="confirm_password">{{ tr('Confirm password') }}</label><input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" minlength="8" required></div>
+      </div>
+      <button class="button button-full" type="submit">Create my workspace</button>
+      <p class="auth-switch">Already a member? <a href="{{ url_for('login') }}">{{ tr('Log in') }}</a></p>
+    </form>
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block title %}Invalid request · WildTrack{% endblock %}
+{% block content %}<main class="empty-page page-shell"><span class="empty-code">400</span><h1>That request didn’t work.</h1><p>{{ message }}</p><a class="button" href="{{ url_for('index') }}">Return to tracker</a></main>{% endblock %}

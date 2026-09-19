@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% from 'hub/_macros.html' import observation_card with context %}
+{% block title %}{{ s.Common_Name }} · WildTrack{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3ynh1S7F70T2dJEFapRixZzT4R/YY=" crossorigin="">
+{% endblock %}
+
+{% block content %}
+<main class="page-shell detail-page">
+  <div class="breadcrumb"><a href="{{ url_for('index') }}#explore">{{ tr('Species directory') }}</a><span>/</span><span>{{ s.Common_Name }}</span></div>
+
+  <section class="detail-hero">
+    <div class="detail-copy">
+      <div class="card-top detail-tags">
+        <span class="class-badge light-text">{{ s.Class }}</span>
+        <span class="status status-{{ s.Status_Code|lower }}">{{ s.Status_Code }} · {{ s.IUCN_Status }}</span>
+      </div>
+      <h1>{{ s.Common_Name }}</h1>
+      <p class="scientific">{{ s.Scientific_Name }}</p>
+      <p class="lead">{{ s.Key_Fact }}</p>
+      {% if s.Data_Origin %}<p class="notice amendment-notice">{{ bi('This profile contains a project amendment. Check the original source for the published assessment.','यो विवरणमा परियोजनाको संशोधन समावेश छ। प्रकाशित मूल्याङ्कनका लागि मूल स्रोत हेर्नुहोस्।') }}</p>{% endif %}
+      <div class="detail-actions">
+        <a class="button button-ghost-light" href="{{ url_for('hub.compare',species=s.Species_ID) }}">{{ tr('Compare') }}</a>
+        {% if g.user %}
+          <form action="{{ url_for('toggle_favorite', species_id=s.Species_ID) }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button class="button button-light" type="submit">{% if is_favorite %}★ Remove from watchlist{% else %}☆ Add to watchlist{% endif %}</button>
+          </form>
+          <a class="button button-ghost-light" href="{{ url_for('report_observation', species=s.Species_ID) }}">Log observation</a>
+        {% else %}
+          <a class="button button-light" href="{{ url_for('login', next=request.path) }}">Log in to follow</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="image-frame">
+      <img class="species-image" src="{{ s.Image_URL }}" alt="{{ s.Common_Name }}" loading="eager">
+      <span>Image sourced from Wikipedia when available</span>
+    </div>
+  </section>
+
+  <section class="profile-layout">
+    <div class="profile-main">
+      <article class="panel profile-panel">
+        <div class="section-heading"><div><span class="eyebrow">SPECIES PROFILE</span><h2>{{ tr('At a glance') }}</h2></div><span class="risk-score">Risk {{ s.Risk_Score }}/5</span></div>
+        <dl class="profile-list">
+          <div><dt>{{ tr('Class') }}</dt><dd>{{ s.Class }}</dd></div>
+          <div><dt>Order</dt><dd>{{ s.Order }}</dd></div>
+          <div><dt>Family</dt><dd>{{ s.Family }}</dd></div>
+          <div><dt>{{ tr('Diet') }}</dt><dd>{{ s.Diet }}</dd></div>
+          <div><dt>Population</dt><dd><span class="trend trend-{{ s.Population_Trend|lower }}">{{ s.Population_Trend }}</span></dd></div>
+          <div><dt>{{ tr('Region') }}</dt><dd>{{ s.Native_Region }}</dd></div>
+        </dl>
+      </article>
+
+      <article class="panel content-panel">
+        <span class="eyebrow">HABITAT & RANGE</span><h2>{{ tr('Where it lives') }}</h2>
+        <p>{{ s.Habitat }}</p><p class="muted-copy"><strong>Countries and territories:</strong> {{ s.Countries }}</p>
+        {% if s.Nepal_Relevance == "Yes" %}<div class="notice"><span>NP</span><div><strong>Relevant to Nepal</strong><p>This species is part of Nepal’s biodiversity and conservation landscape.</p></div></div>{% endif %}
+      </article>
+
+      <div class="two-card-grid">
+        <article class="panel content-panel threat-panel"><span class="eyebrow">PRESSURES</span><h2>{{ tr('Primary threats') }}</h2><p>{{ s.Primary_Threats }}</p></article>
+        <article class="panel content-panel action-panel"><span class="eyebrow">RESPONSE</span><h2>{{ tr('Conservation work') }}</h2><p>{{ s.Conservation_Actions }}</p></article>
+      </div>
+    </div>
+
+    <aside class="profile-aside">
+      <section class="panel sticky-map">
+        <div class="section-heading"><div><span class="eyebrow">RANGE POINT</span><h2>Representative location</h2></div></div>
+        <div id="detailMap" role="region" aria-label="Representative range map" aria-describedby="range-description"></div>
+        <p id="range-description" class="fineprint">{{ s.Native_Region }}. {{ bi('This map shows a representative region, not an exact animal location.','यो नक्साले सामान्य क्षेत्र देखाउँछ, जनावरको ठ्याक्कै स्थान होइन।') }}</p>
+      </section>
+    </aside>
+  </section>
+
+  <section class="observations-section">
+    <div class="directory-heading">
+      <div><span class="eyebrow">{{ tr('Community') }}</span><h2>{{ tr('Recent observations') }}</h2><p>{{ bi('Community notes reviewed by a project administrator.','प्रशासकले समीक्षा गरेका सामुदायिक टिप्पणीहरू।') }}</p></div>
+      {% if g.user %}<a class="button button-outline" href="{{ url_for('report_observation', species=s.Species_ID) }}">Add observation</a>{% endif %}
+    </div>
+    {% if observations %}
+      <div class="observation-grid">
+        {% for observation in observations %}{{ observation_card(observation) }}{% endfor %}
+      </div>
+    {% else %}
+      <div class="inline-empty"><p>No field notes for this species yet.</p>{% if g.user %}<a href="{{ url_for('report_observation', species=s.Species_ID) }}">Be the first to add one →</a>{% endif %}</div>
+    {% endif %}
+  </section>
+
+  <section class="sources">
+    <div><span class="eyebrow">VERIFY & LEARN</span><h2>{{ tr('Sources') }}</h2></div>
+    <a target="_blank" rel="noopener" href="{{ s.IUCN_Source }}">Current IUCN listing ↗</a>
+    <a target="_blank" rel="noopener" href="{{ s.Wikipedia_Source }}">Background reading ↗</a>
+    <span>Dataset reviewed {{ s.Last_Reviewed }}</span>
+  </section>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  const lat = {{ s.Map_Latitude|tojson }};
+  const lng = {{ s.Map_Longitude|tojson }};
+  const validPoint = Number.isFinite(lat) && Number.isFinite(lng);
+  const detailMap = L.map("detailMap", { scrollWheelZoom: false }).setView(validPoint ? [lat, lng] : [20, 25], validPoint ? 5 : 2);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap contributors" }).addTo(detailMap);
+  const popup = document.createElement('span'); popup.textContent = {{ s.Common_Name|tojson }};
+  if (validPoint) L.circleMarker([lat, lng], { radius: 9, color: "#fff", weight: 3, fillColor: "#c55242", fillOpacity: 1 }).addTo(detailMap).bindPopup(popup).openPopup();
+</script>
+{% endblock %}

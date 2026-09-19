@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}WildTrack · Endangered Species Tracker{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3ynh1S7F70T2dJEFapRixZzT4R/YY=" crossorigin="">
+{% endblock %}
+
+{% block content %}
+<header class="home-hero">
+  <div class="hero-copy">
+    <span class="eyebrow light">LIVE CONSERVATION DIRECTORY</span>
+    <h1>Know what’s at risk.<br><em>Track what matters.</em></h1>
+    <p>Explore threatened wildlife, follow species you care about, and build a personal field journal from one clear workspace.</p>
+    <form class="hero-search" method="get" action="{{ url_for('index') }}#explore">
+      <label class="sr-only" for="hero-q">{{ tr('Search species') }}</label>
+      <input id="hero-q" name="q" type="search" placeholder="Search tiger, Himalaya, wetland…" value="{{ request.args.get('q', '') }}">
+      <button type="submit">Search database</button>
+    </form>
+    <div class="hero-meta">
+      <span><strong>{{ stats.total }}</strong> species profiles</span>
+      <span><strong>{{ stats.nepal }}</strong> relevant to Nepal</span>
+      {% if source.startswith('Google Sheets') %}
+        <a href="{{ data_source_url }}" target="_blank" rel="noopener">Updated from {{ source }} ↗</a>
+      {% else %}
+        <span>Updated from {{ source }}</span>
+      {% endif %}
+    </div>
+  </div>
+  <aside class="risk-pulse" aria-label="Conservation risk summary">
+    <div class="pulse-header"><span>{{ bi('Risk pulse','जोखिम अवस्था') }}</span><span>{{ bi('Source connected','स्रोत जोडिएको') if source.startswith('Google Sheets') else bi('Offline sample','अफलाइन नमुना') }}</span></div>
+    <div class="pulse-number">{{ stats.cr }}</div>
+    <p>critically endangered species in this collection</p>
+    <div class="risk-bar" aria-label="{{ stats.cr }} of {{ stats.total }} species are critically endangered">
+      <span style="width: {{ (stats.cr / stats.total * 100)|round if stats.total else 0 }}%"></span>
+    </div>
+    <a href="{{ url_for('index', status='Critically Endangered') }}#explore">View highest-risk species <span>→</span></a>
+  </aside>
+</header>
+
+<main class="page-shell">
+  <nav class="discovery-links" aria-label="Start exploring"><a href="{{ url_for('hub.learn') }}">{{ tr('Learn & Protect') }} <span>↗</span></a><a href="{{ url_for('hub.compare') }}">{{ tr('Compare') }} <span>↗</span></a><a href="{{ url_for('hub.community') }}">{{ tr('Community') }} <span>↗</span></a><a href="{{ url_for('hub.analytics') }}">{{ tr('Analytics') }} <span>↗</span></a></nav>
+  <section class="stat-strip" aria-label="Database summary">
+    <div><span class="stat-icon danger-dot"></span><strong>{{ stats.cr }}</strong><span>Critically endangered</span></div>
+    <div><span class="stat-icon amber-dot"></span><strong>{{ stats.en }}</strong><span>{{ tr('Endangered') }}</span></div>
+    <div><span class="stat-icon gold-dot"></span><strong>{{ stats.vu }}</strong><span>{{ tr('Vulnerable') }}</span></div>
+    <div><span class="stat-icon down-dot">↓</span><strong>{{ stats.decreasing }}</strong><span>Decreasing populations</span></div>
+  </section>
+
+  <section class="insights-grid" aria-labelledby="overview-heading">
+    <article class="panel chart-panel">
+      <div class="section-heading">
+        <div><span class="eyebrow">DATA SNAPSHOT</span><h2 id="overview-heading">Conservation overview</h2></div>
+      </div>
+      <div class="chart-wrap"><canvas id="statusChart" aria-label="Species by risk category"></canvas></div>
+      <div class="chart-key">
+        <span><i class="key-cr"></i>Critical</span><span><i class="key-en"></i>{{ tr('Endangered') }}</span><span><i class="key-vu"></i>{{ tr('Vulnerable') }}</span>
+      </div>
+    </article>
+    <article class="panel map-panel">
+      <div class="section-heading">
+        <div><span class="eyebrow">GLOBAL VIEW</span><h2>Where species are found</h2></div>
+        <span class="subtle-label">Representative points</span>
+      </div>
+      <div id="map" role="region" aria-label="Representative species locations" aria-describedby="map-description"></div>
+      <p id="map-description" class="map-description">{{ bi('Map points show broad regions, not sightings. The species cards below provide the same names and regions as a text alternative.','नक्साका बिन्दुले सामान्य क्षेत्र देखाउँछन्, प्रत्यक्ष अवलोकन होइनन्। तलका प्रजाति कार्डमा नाम र क्षेत्र पाठमा उपलब्ध छन्।') }}</p>
+    </article>
+  </section>
+
+  <section id="explore" class="explore">
+    <div class="directory-heading">
+      <div><span class="eyebrow">SPECIES DIRECTORY</span><h2>Explore the collection</h2><p>Filter by conservation status, animal class, region, or population trend.</p></div>
+      {% if g.user %}
+        <a class="button button-outline" href="{{ url_for('dashboard') }}">View my watchlist</a>
+      {% else %}
+        <a class="button button-outline" href="{{ url_for('register') }}">Create a watchlist</a>
+      {% endif %}
+    </div>
+
+    <form class="filters" method="get">
+      <div class="filter-search">
+        <label for="q">{{ tr('Search') }}</label>
+        <input id="q" type="search" name="q" placeholder="Name, habitat, region…" value="{{ request.args.get('q','') }}">
+      </div>
+      <div><label for="status">{{ tr('Status') }}</label><select id="status" name="status">
+        <option value="">All statuses</option>
+        {% for x in statuses %}<option value="{{ x }}" {% if request.args.get('status') == x %}selected{% endif %}>{{ x }}</option>{% endfor %}
+      </select></div>
+      <div><label for="class">{{ tr('Class') }}</label><select id="class" name="class">
+        <option value="">All classes</option>
+        {% for x in classes %}<option value="{{ x }}" {% if request.args.get('class') == x %}selected{% endif %}>{{ x }}</option>{% endfor %}
+      </select></div>
+      <div><label for="trend">Population</label><select id="trend" name="trend">
+        <option value="">All trends</option>
+        {% for x in trends %}<option value="{{ x }}" {% if request.args.get('trend') == x %}selected{% endif %}>{{ x }}</option>{% endfor %}
+      </select></div>
+      <div><label for="nepal">{{ tr('Region') }}</label><select id="nepal" name="nepal">
+        <option value="">Global</option><option value="yes" {% if request.args.get('nepal') == 'yes' %}selected{% endif %}>Nepal relevant</option>
+      </select></div>
+      <div><label for="sort">{{ tr('Sort') }}</label><select id="sort" name="sort">
+        <option value="risk" {% if request.args.get('sort','risk') == 'risk' %}selected{% endif %}>Highest risk</option>
+        <option value="name" {% if request.args.get('sort') == 'name' %}selected{% endif %}>Name A–Z</option>
+        <option value="region" {% if request.args.get('sort') == 'region' %}selected{% endif %}>{{ tr('Region') }}</option>
+      </select></div>
+      <button class="button" type="submit">{{ tr('Apply filters') }}</button>
+    </form>
+
+    <div class="results-bar">
+      <strong>{{ species|length }} species</strong><span>matching your filters</span>
+      {% if request.query_string %}<a href="{{ url_for('index') }}#explore">{{ tr('Clear all') }}</a>{% endif %}
+    </div>
+
+    {% if species %}
+    <div class="species-grid">
+      {% for s in species %}
+      <article class="species-card">
+        <a class="card-link" href="{{ url_for('species_detail', species_id=s.Species_ID) }}" aria-label="View {{ s.Common_Name }} profile"></a>
+        <div class="card-top">
+          <span class="class-badge">{{ s.Class }}</span>
+          <span class="status status-{{ s.Status_Code|lower }}">{{ s.Status_Code }} · {{ s.IUCN_Status }}</span>
+        </div>
+        <div class="species-symbol" aria-hidden="true">{{ s.Common_Name[0] }}</div>
+        <h3>{{ s.Common_Name }}</h3>
+        <em>{{ s.Scientific_Name }}</em>
+        <p class="region">{{ s.Native_Region }}</p>
+        <div class="card-footer">
+          <span class="trend trend-{{ s.Population_Trend|lower }}">{{ s.Population_Trend }} trend</span>
+          {% if s.Nepal_Relevance == "Yes" %}<span class="nepal-tag">Nepal</span>{% endif %}
+          {% if s.Species_ID in favorite_ids %}<span class="watching-tag">★ Watching</span>{% endif %}
+          <span class="card-arrow">↗</span>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+      <div class="empty-state"><span>0</span><h3>No species found</h3><p>Try removing a filter or searching for a broader habitat or region.</p><a class="button" href="{{ url_for('index') }}#explore">Reset filters</a></div>
+    {% endif %}
+  </section>
+
+  {% if featured %}<section class="weekly-feature"><div class="weekly-image"><img src="{{ url_for('hub.species_image',species_id=featured.Species_ID) }}" alt="{{ featured.Common_Name }}" loading="lazy"><span>{{ bi('Wikipedia image when available','उपलब्ध भए विकिपिडियाको फोटो') }}</span></div><div class="weekly-copy"><span class="eyebrow">{{ tr('Species of the week') }}</span><h2>{{ featured.Common_Name }}</h2><em>{{ featured.Scientific_Name }}</em><p>{{ featured.Key_Fact }}</p><div class="tag-list"><span>{{ tr(featured.IUCN_Status) }}</span><span>{{ featured.Native_Region }}</span></div><h3>{{ tr('Primary threats') }}</h3><p>{{ featured.Primary_Threats }}</p><h3>{{ tr('Conservation actions') }}</h3><p>{{ featured.Conservation_Actions }}</p><div class="button-row"><a class="button" href="{{ url_for('species_detail',species_id=featured.Species_ID) }}">{{ tr('View profile') }}</a>{% if g.user %}<form method="post" action="{{ url_for('toggle_favorite',species_id=featured.Species_ID) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="next" value="/"><button class="button button-outline">{{ bi('Remove from watchlist','निगरानी सूचीबाट हटाउनुहोस्') if featured.Species_ID in favorite_ids else bi('Add to watchlist','निगरानी सूचीमा थप्नुहोस्') }}</button></form><form method="post" action="{{ url_for('hub.quiz_start') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="mode" value="weekly"><button class="button button-outline">{{ bi('Weekly mini quiz','साप्ताहिक छोटो प्रश्नोत्तरी') }}</button></form>{% else %}<a class="button button-outline" href="{{ url_for('hub.quiz') }}">{{ tr('Take the quiz') }}</a>{% endif %}</div></div></section>{% endif %}
+  <section class="join-banner">
+    <div><span class="eyebrow light">YOUR CONSERVATION WORKSPACE</span><h2>Turn browsing into a field journal.</h2><p>Follow priority species and keep your observations together in a private local account.</p></div>
+    {% if g.user %}<a class="button button-light" href="{{ url_for('report_observation') }}">Log an observation</a>{% else %}<a class="button button-light" href="{{ url_for('register') }}">Create free account</a>{% endif %}
+  </section>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  const chartData = {{ chart_data|tojson }};
+  new Chart(document.getElementById("statusChart"), {
+    type: "doughnut",
+    data: { labels: chartData.labels, datasets: [{ data: chartData.values, backgroundColor: ["#c55242", "#e39a3b", "#e9c75b"], borderWidth: 0, spacing: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: "72%", plugins: { legend: { display: false }, tooltip: { backgroundColor: "#123c32", padding: 12 } } }
+  });
+
+  const speciesData = {{ all_species|tojson }};
+  const map = L.map("map", { scrollWheelZoom: false }).setView([20, 25], 2);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
+  speciesData.forEach(item => {
+    if (Number.isFinite(item.Map_Latitude) && Number.isFinite(item.Map_Longitude)) {
+      const color = item.Status_Code === "CR" ? "#c55242" : item.Status_Code === "EN" ? "#e39a3b" : "#d5b541";
+      const popup = document.createElement('span'); popup.textContent = `${item.Common_Name} · ${item.Scientific_Name} · ${item.IUCN_Status}`;
+      L.circleMarker([item.Map_Latitude, item.Map_Longitude], { radius: 6, color: "#fff", weight: 2, fillColor: color, fillOpacity: .9 }).addTo(map).bindPopup(popup);
+    }
+  });
+</script>
+{% endblock %}

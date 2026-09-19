@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from 'hub/_macros.html' import badge with context %}
+{% block title %}My workspace · WildTrack{% endblock %}
+{% block content %}
+<main class="page-shell dashboard-page">
+  <header class="dashboard-header">
+    <div><span class="eyebrow light">PERSONAL CONSERVATION WORKSPACE</span><h1>Welcome back, {{ g.user.username }}.</h1><p>Keep watch on priority species and maintain your field journal.</p></div>
+    <a class="button button-light" href="{{ url_for('report_observation') }}">+ Log observation</a>
+  </header>
+
+  <section class="workspace-stats">
+    <div><strong>{{ favorites|length }}</strong><span>{{ tr('Species watched') }}</span></div>
+    <div><strong>{{ observations|length }}</strong><span>{{ tr('Field observations') }}</span></div>
+    <div><strong>{{ (favorites|selectattr('IUCN_Status', 'equalto', 'Critically Endangered')|list)|length }}</strong><span>{{ tr('Critical on watchlist') }}</span></div>
+  </section>
+
+  <section class="workspace-section">
+    <div class="member-tools panel"><div><span class="eyebrow">{{ bi('YOUR PROGRESS','तपाईंको प्रगति') }}</span><h2>{{ progress.points }} {{ tr('Points') }} · {{ progress.earned }}/6 {{ tr('Achievements') }}</h2></div><div class="button-row"><a class="button button-outline" href="{{ url_for('hub.achievements') }}">{{ tr('Achievements') }} →</a><a class="button button-outline" href="{{ url_for('hub.alerts') }}">{{ tr('Alerts') }} ({{ unread_alerts }})</a><a class="button button-outline" href="{{ url_for('hub.export_observations') }}">{{ tr('Export CSV') }}</a></div></div>
+    <div class="directory-heading"><div><span class="eyebrow">MY WATCHLIST</span><h2>{{ tr('Species you follow') }}</h2></div><a class="text-link" href="{{ url_for('index') }}#explore">Discover more →</a></div>
+    {% if favorites %}
+      <div class="watchlist-grid">
+        {% for s in favorites %}<article class="watch-card"><a class="card-link" href="{{ url_for('species_detail', species_id=s.Species_ID) }}" aria-label="{{ tr('View profile') }}: {{ s.Common_Name }}"></a><div><span class="status status-{{ s.Status_Code|lower }}">{{ s.Status_Code }}</span><span class="class-badge">{{ s.Class }}</span></div><h3>{{ s.Common_Name }}</h3><em>{{ s.Scientific_Name }}</em><p>{{ s.Native_Region }}</p><span class="card-arrow">↗</span></article>{% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state compact"><span>☆</span><h3>{{ tr('Your watchlist is empty') }}</h3><p>Add species from the directory to keep their profiles close.</p><a class="button" href="{{ url_for('index') }}#explore">{{ tr('Explore species') }}</a></div>
+    {% endif %}
+  </section>
+
+  <section class="workspace-section">
+    <div class="directory-heading"><div><span class="eyebrow">FIELD JOURNAL</span><h2>{{ tr('Your observations') }}</h2></div><a class="button button-outline" href="{{ url_for('report_observation') }}">{{ tr('Add entry') }}</a></div>
+    {% if observations %}
+      <div class="journal-list">
+        {% for observation in observations %}<article class="journal-entry"><div class="journal-date"><strong>{{ observation.observed_on[8:10] }}</strong><span>{{ observation.observed_on[0:7] }}</span></div><div class="journal-body"><div><h3>{% if observation.species %}<a href="{{ url_for('species_detail', species_id=observation.species.Species_ID) }}">{{ observation.species.Common_Name }}</a>{% else %}Unknown species{% endif %}</h3><span class="location-pin">{{ observation.location }}</span></div><p>{{ observation.notes }}</p>{{ badge(observation.status) }} <span class="subtle-label">{{ tr(observation.category) }}</span>{% if observation.review_note %}<p><strong>{{ tr('Review') }}:</strong> {{ observation.review_note }}</p>{% endif %}{% if observation.photo %}<img class="journal-photo" src="{{ url_for('hub.observation_photo',observation_id=observation.id) }}" alt="Your observation photograph" loading="lazy">{% endif %}</div><form action="{{ url_for('delete_observation', observation_id=observation.id) }}" method="post" data-confirm="Remove this observation?"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="icon-button" type="submit" aria-label="Delete observation" title="Delete observation">×</button></form></article>{% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state compact"><span>⌖</span><h3>{{ tr('No observations yet') }}</h3><p>Record a responsible sighting or field note to begin your journal.</p><a class="button" href="{{ url_for('report_observation') }}">Log first observation</a></div>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}
