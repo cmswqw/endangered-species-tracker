@@ -72,13 +72,20 @@ app.config.update(
     SESSION_COOKIE_SECURE=IS_VERCEL,
 )
 
-SHEET_ID = os.getenv(
-    "GOOGLE_SHEET_ID", "1GimbfdLW2aQtIhUWw1lXM4JJ4ZBALlzQldT-o6FhFzE"
+SHEET_ID = (
+    os.getenv("GOOGLE_SHEET_ID")
+    or "1GimbfdLW2aQtIhUWw1lXM4JJ4ZBALlzQldT-o6FhFzE"
 ).strip()
-SHEET_NAME = os.getenv("GOOGLE_SHEET_NAME", "Species").strip()
-SHEET_RANGE = os.getenv("GOOGLE_SHEET_RANGE", "A4:W").strip()
-SHEET_PUBLIC = os.getenv("GOOGLE_SHEET_PUBLIC", "true").strip().lower() in {"1", "true", "yes"}
-SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", "service_account.json").strip()
+SHEET_NAME = (os.getenv("GOOGLE_SHEET_NAME") or "Species").strip()
+SHEET_RANGE = (os.getenv("GOOGLE_SHEET_RANGE") or "A4:W").strip()
+SHEET_PUBLIC = (os.getenv("GOOGLE_SHEET_PUBLIC") or "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+}
+SERVICE_ACCOUNT_FILE = (
+    os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE") or "service_account.json"
+).strip()
 SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/edit"
 
 _cache = {"time": 0, "data": []}

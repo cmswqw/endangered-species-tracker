@@ -72,6 +72,8 @@ For public deployment, use HTTPS, a production WSGI server, a strong environment
 
 WildTrack detects Vercel automatically and puts its writable runtime files in `/tmp/wildtrack`, because deployed application files are read-only. In **Vercel → Project → Settings → Environment Variables**, add a long random `FLASK_SECRET_KEY` for Production, Preview, and Development, then redeploy. The Google Sheet remains the live species source without any additional setting.
 
+Do not add empty `GOOGLE_SHEET_*` variables in Vercel. Blank values are treated as unset and use this repository's supplied Sheet ID, `Species` tab, `A4:W` range, and public-read mode.
+
 Vercel's `/tmp` storage is temporary and is not shared by every serverless instance. The public species directory, learning pages, comparison, quiz content, news, organizations, analytics, and Google Sheets integration work normally, but SQLite-backed accounts, watchlists, observations, admin changes, and uploaded photos can reset after a cold start. Use a hosted database and object storage before treating those member features as permanent production data. Local VS Code runs continue using `data/wildtrack.db` and `instance/uploads` as before.
 
 ## Run tests
